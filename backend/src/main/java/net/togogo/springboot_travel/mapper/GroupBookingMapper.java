@@ -1,0 +1,9 @@
+package net.togogo.springboot_travel.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import net.togogo.springboot_travel.entity.GroupBooking;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface GroupBookingMapper extends BaseMapper<GroupBooking> {
+}

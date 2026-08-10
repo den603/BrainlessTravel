@@ -1,0 +1,43 @@
+# ===================== 后端 SpringBoot 相关忽略 =====================
+# Java编译打包产物
+backend/target/
+backend/!.gitignore
+backend/!.gitattributes
+
+# IDE 缓存配置
+backend/.idea/
+backend/*.iml
+backend/.vscode/
+
+# 日志文件
+backend/logs/
+backend/*.log
+backend/heapdump*.hprof
+
+# Maven 临时文件
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# 【核心】屏蔽带密码密钥的本地开发配置（绝对不上传GitHub）
+backend/src/main/resources/application.yml
+backend/src/main/resources/application.properties
+
+# ===================== UniApp 微信小程序前端相关忽略 =====================
+# 前端依赖包（体积超大，使用者本地npm install生成）
+uniapp-front/node_modules/
+uniapp-front/uni_modules/
+# 编译打包输出目录
+uniapp-front/unpackage/
+uniapp-front/dist/
+
+# 编辑器缓存
+uniapp-front/.vscode/
+uniapp-front/.idea/
+
+# 日志、临时文件
+uniapp-front/*.log
+uniapp-front/.DS_Store
+
+# ===================== Windows / Mac 系统冗余垃圾文件 =====================
+.DS_Store
+Thumbs.db
+desktop.ini

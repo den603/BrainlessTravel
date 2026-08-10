@@ -1,0 +1,74 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/travel?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: 【填写你的MySQL用户名，默认一般为root】
+    password: 【填写你的MySQL数据库登录密码】
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: 【Redis访问密码，无密码直接删除整行】
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+  servlet:
+    multipart:
+      # 单个文件最大 10MB
+      max-file-size: 10MB
+      # 一次请求所有文件总大小 50MB
+      max-request-size: 50MB
+      # 开启文件上传
+      enabled: true
+
+mybatis-plus:
+  type-aliases-package: net.togogo.springboot_travel.entity
+  global-config:
+    db-config:
+      logic-delete-field: is_delete
+      logic-not-delete-value: 0
+      logic-delete-value: 1
+  configuration:
+    map-underscore-to-camel-case: true
+
+# ========== MinIO 对象存储配置 ==========
+minio:
+  endpoint: http://127.0.0.1:9000
+  access-key: 【填写你的MinIO账号】
+  secret-key: 【填写你的MinIO访问密钥】
+  bucket-name: travel
+
+# 微信小程序登录配置
+wechat:
+  mini:
+    appid: 【前往微信公众平台申请自己的小程序AppID】
+    appsecret: 【对应小程序的AppSecret密钥】
+    login-url: https://api.weixin.qq.com/sns/jscode2session # 微信官方固定接口地址无需修改
+
+# JWT 令牌加密配置
+jwt:
+  secret: 【自定义JWT加密密钥，建议设置复杂随机字符串，生产环境切勿使用简单密钥】
+  expire: 86400000 # token有效期：1天（单位：毫秒）
+
+# 讯飞星火大模型 AI行程规划、智能问答配置
+spark:
+  app-id: 【讯飞开放平台控制台获取应用ID】
+  api-key: 【讯飞开放平台获取API Key】
+  api-secret: 【讯飞开放平台获取API Secret】
+  url: https://spark-api-open.xf-yun.com/x2/chat/completions【这里以免费基础的接口为例】
+
+logging:
+  level:
+    root: INFO
+    net.togogo.springboot_travel: INFO
+    cn.hutool: WARN

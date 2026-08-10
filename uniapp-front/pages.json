@@ -1,0 +1,180 @@
+{
+	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "uni-app"
+			}
+		},
+		{
+			"path" : "pages/answer/answer",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/mine/mine",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/detail/detail",
+			"style" : 
+			{
+				"navigationBarTitleText" : "",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path" : "pages/line/line",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/AI-asistant/AI-asistant",
+			"style" : 
+			{
+				"navigationBarTitleText" : "",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path" : "pages/new-mode/new-mode",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/SilverHairedModel/SilverHairedModel",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/FindTravelMate/FindTravelMate",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/SilverHairedModel/group-travel/detail",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/SilverHairedModel/group-travel/list",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/SilverHairedModel/private-guide/list",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/SilverHairedModel/private-guide/detail",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/test/test",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/SilverHairedModel/my-bookings/my-bookings",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/TravelPlanHistory/TravelPlanHistory",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/digital-human/digital-human",
+			"style": {
+			        "navigationBarTitleText": "AI数字人导游",
+			        "navigationStyle": "custom"
+			      }
+		},
+		{
+			"path" : "pages/addScenic/addScenic",
+			"style" : 
+			{
+				"navigationBarTitleText" : "添加景点"
+			}
+		}
+	],
+	"tabBar": {
+		"color": "#7A7E83",
+		"selectedColor":"#2897CE",
+		"borderStyle": "black",
+		"backgroundColor": "#ffffff",
+		"list": [
+			{"pagePath":"pages/index/index",//跳转路径
+			"iconPath":"/static/tabbar/ly-home01.png",//未选中图标图的路径
+			"selectedIconPath":"/static/tabbar/ly-home.png",//选中图标图的路径
+			"text":"首页"//文本信息
+			},
+			{"pagePath":"pages/new-mode/new-mode",//跳转路径
+			"iconPath":"/static/tabbar/new-mode.png",//未选中图标图的路径
+			"selectedIconPath":"/static/tabbar/new-mode 1.png",//选中图标图的路径
+			"text":"新模式"//文本信息
+			},
+			{"pagePath":"pages/AI-asistant/AI-asistant",//跳转路径
+			"iconPath":"/static/tabbar/ait_ai助手.png",//未选中图标图的路径
+			"selectedIconPath":"/static/tabbar/ait_ai助手 1.png",//选中图标图的路径
+			"text":"AI助手"//文本信息
+			},
+			{"pagePath":"pages/answer/answer",//跳转路径
+			"iconPath":"/static/tabbar/ly-link01.png",//未选中图标图的路径
+			"selectedIconPath":"/static/tabbar/ly-link.png",//选中图标图的路径
+			"text":"问答"//文本信息
+			},
+			{"pagePath":"pages/mine/mine",//跳转路径
+			"iconPath":"/static/tabbar/ly-my01.png",//未选中图标图的路径
+			"selectedIconPath":"/static/tabbar/ly-my.png",//选中图标图的路径
+			"text":"我的"//文本信息
+			}
+		]
+	},
+	"easycom": {
+			"autoscan": true,
+			// 注意一定要放在custom里，否则无效，https://ask.dcloud.net.cn/question/131175
+			"custom": {
+				"^u--(.*)": "@/uni_modules/uview-plus/components/u-$1/u-$1.vue",
+				"^up-(.*)": "@/uni_modules/uview-plus/components/u-$1/u-$1.vue",
+				"^u-([^-].*)": "@/uni_modules/uview-plus/components/u-$1/u-$1.vue"
+			}
+		},
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "uni-app",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	},
+	"uniIdRouter": {}
+}
