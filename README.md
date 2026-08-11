@@ -89,9 +89,6 @@
 ---
 
 ## 📸 界面预览
-
-> 📌 **使用说明**：将下方截图放入仓库 `docs/screenshots/` 目录后，即可在 GitHub 正常显示。
-
 <table>
   <tr>
     <td align="center"><b>🏠 首页</b></td>
