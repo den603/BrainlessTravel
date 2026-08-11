@@ -28,8 +28,12 @@
 - [项目结构](#-项目结构)
 - [环境依赖](#-环境依赖)
 - [快速开始](#-快速开始)
-  - [后端启动](#1-后端启动)
-  - [前端启动](#2-前端启动)
+  - [1. 环境准备](#1-环境准备)
+  - [2. 数据库初始化](#2-数据库初始化)
+  - [3. MinIO 对象存储安装配置](#3-minio-对象存储安装配置)
+  - [4. 后端启动](#4-后端启动)
+  - [5. 前端启动](#5-前端启动)
+- [数据库表结构](#-数据库表结构)
 - [配置说明](#-配置说明)
 - [接口文档](#-接口文档)
 - [安全规范](#-安全规范)
@@ -193,7 +197,7 @@ BrainlessTravel/
 │   ├── components/                  # 公共组件
 │   ├── static/                      # 静态资源
 │   ├── utils/                       # 工具封装（request、config、auth）
-   └── manifest.json                 # 小程序配置
+│   └── manifest.json                # 小程序配置
 ├── docs/
 │   └── screenshots/                 # 项目截图（README 引用）
 ├── .gitignore                       # Git 忽略配置
@@ -213,7 +217,7 @@ BrainlessTravel/
 | Redis | 5.0+ | [官方下载](https://redis.io/download) |
 | Maven | 3.6+ | [官方下载](https://maven.apache.org/download.cgi) |
 | Node.js | 16+ | [官方下载](https://nodejs.org/) |
-| MinIO | 最新 | [官方下载](https://min.io/download) |
+| Docker | 任意 | [官方下载](https://www.docker.com/)（用于运行 MinIO） |
 | HBuilderX | 最新 | [官方下载](https://www.dcloud.io/hbuilderx.html) |
 | 微信开发者工具 | 最新 | [官方下载](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html) |
 
@@ -221,17 +225,180 @@ BrainlessTravel/
 
 ## 🚀 快速开始
 
-### 1. 后端启动
+### 1. 环境准备
 
-#### 第一步：配置核心文件 ⚠️
+克隆仓库到本地：
 
-进入 `backend/src/main/resources/`，将 `application-template.yml` 复制一份，重命名为 **`application.yml`**，然后修改以下私密配置：
+```bash
+git clone https://github.com/den603/BrainlessTravel.git
+cd BrainlessTravel
+```
+
+---
+
+### 2. 数据库初始化
+
+#### 2.1 创建数据库
+
+使用 MySQL 客户端（命令行、Navicat、DataGrip 均可）创建数据库：
+
+```sql
+CREATE DATABASE IF NOT EXISTS travel
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_unicode_ci;
+```
+
+> 💡 `utf8mb4` 支持完整的 Unicode 字符（包括 emoji），`utf8mb4_unicode_ci` 排序规则对中文支持更好。
+
+#### 2.2 导入数据表与初始数据
+
+项目提供了完整的初始化脚本 `backend/src/main/resources/sql/travel_init.sql`，包含：
+- ✅ 所有业务表的 `CREATE TABLE` 语句
+- ✅ 逻辑删除字段 `is_delete` 与索引
+- ✅ 景点示例数据（天坛、故宫、九寨沟等）
+- ✅ 轮播图数据
+- ✅ 题库数据（故宫、广州、上海等景点）
+- ✅ 示例旅行计划数据
+
+**命令行导入方式：**
+
+```bash
+mysql -u root -p travel < backend/src/main/resources/sql/travel_init.sql
+```
+
+**图形工具导入方式（Navicat / DataGrip）：**
+1. 连接本地 MySQL，选中 `travel` 数据库
+2. 右键 → 运行 SQL 文件 → 选择 `travel_init.sql`
+3. 执行完成后刷新表列表，确认表已创建
+
+#### 2.3 验证导入结果
+
+导入成功后，应包含以下核心表（共 20 张）：
+
+| 模块 | 表名 | 说明 |
+|------|------|------|
+| 系统 | `user` | 微信用户信息 |
+| 首页 | `banner` | 首页轮播图 |
+| 首页 | `scenic` | 景点信息 |
+| 首页 | `scenic_play` | 景点游玩推荐 |
+| AI 助手 | `chat_history` | AI 自由聊天历史 |
+| AI 助手 | `t_travel_plan` | AI 生成的旅行计划 |
+| 问答 | `question` | 景点题库 |
+| 问答 | `question_fallback` | 题库兜底表 |
+| 问答 | `user_answer_record` | 用户答题记录 |
+| 问答 | `user_answer_detail` | 用户答题详情 |
+| 组队 | `team` | 寻伴组队信息 |
+| 组队 | `team_member` | 组队成员关系 |
+| 导游 | `tb_private_guide` | 私人导游信息 |
+| 导游 | `tb_guide_booking` | 导游预约表 |
+| 导游 | `tb_guide_booking_traveler` | 预约出行人关联 |
+| 导游 | `tb_traveler` | 出行人信息 |
+
+验证命令：
+```sql
+USE travel;
+SHOW TABLES;
+```
+
+> ⚠️ **注意**：SQL 中的示例图片 URL 使用公网占位图，本地开发时如需显示真实图片，请替换为 MinIO 中上传的图片地址。
+
+---
+
+### 3. MinIO 对象存储安装配置
+
+本项目使用 MinIO 存储景点图片、用户头像等文件。以下是完整的本地安装配置流程。除了下面讲述的方法Minio也可在本地下载使用，只需在网上把下载好的 `minio.exe` 放入 任意盘符`D:\MinIO\bin`下在切换到当前文件存储目录运行.\minio.exe server D:\MinIO\data即可。
+
+#### 3.1 Docker 安装 MinIO（推荐）
+
+确保本地已安装 Docker，然后执行：
+
+```bash
+docker run -d   -p 9000:9000   -p 9001:9001   --name minio   --restart=always   -e "MINIO_ROOT_USER=minioadmin"   -e "MINIO_ROOT_PASSWORD=minioadmin"   -v ~/minio/data:/data   -v ~/minio/config:/root/.minio   quay.io/minio/minio server /data --console-address ":9001"
+```
+
+**参数说明：**
+
+| 参数 | 说明 |
+|------|------|
+| `-p 9000:9000` | **API 端口**：后端程序通过此端口上传/下载文件 |
+| `-p 9001:9001` | **控制台端口**：浏览器访问 Web 管理界面 |
+| `MINIO_ROOT_USER` | 管理员账号（对应 `application.yml` 中的 `access-key`） |
+| `MINIO_ROOT_PASSWORD` | 管理员密码（对应 `application.yml` 中的 `secret-key`） |
+| `-v ~/minio/data:/data` | 数据持久化到本地目录，容器删除后数据不丢失 |
+
+#### 3.2 验证 MinIO 启动状态
+
+```bash
+# 查看容器是否运行
+docker ps | grep minio
+
+# 应输出类似：
+# CONTAINER ID   IMAGE           STATUS         PORTS
+# xxxxxxxx       minio/minio     Up 2 minutes   0.0.0.0:9000-9001->9000-9001/tcp
+```
+
+#### 3.3 登录 MinIO 控制台创建存储桶
+
+1. 浏览器访问：`http://localhost:9001`
+2. 使用账号 `minioadmin` / 密码 `minioadmin` 登录
+3. 点击左侧菜单 **Buckets** → **Create Bucket**
+4. 输入桶名：`travel` → 点击 **Create Bucket**
+
+> 💡 桶名必须与 `application.yml` 中 `minio.bucket-name` 的值一致。
+
+#### 3.4 配置桶的访问权限（重要！）
+
+创建桶后，需要设置访问策略，否则前端无法直接访问图片：
+
+1. 进入 `travel` 桶 → 点击 **Access Rules**
+2. 点击 **Add Access Rule**
+3. 配置如下：
+   - **Prefix**：`*`（通配符，匹配所有对象）
+   - **Access**：`Read Only`（只读，允许公开访问图片）
+4. 点击 **Save**
+
+或者设置为 **Anonymous** 访问：
+- 进入桶 → **Access Policy** → 选择 `Public`
+
+> ⚠️ **安全提示**：本地开发可设为 Public；生产环境建议使用 Presigned URL 或配置更精细的访问策略。
+
+#### 3.5 上传示例图片（可选）
+
+如果想让首页景点显示真实图片：
+
+1. 在控制台进入 `travel` 桶
+2. 点击 **Upload** → 选择本地景点图片
+3. 上传后文件路径为：`travel/xxx.jpg`
+4. 访问地址：`http://localhost:9000/travel/xxx.jpg`
+5. 将 `scenic` 表中的 `img` 字段更新为上述地址
+
+#### 3.6 application.yml 配置对应
+
+确保你的 `application.yml` 中 MinIO 配置与上述安装一致：
+
+```yaml
+minio:
+  endpoint: http://localhost:9000    # API 端口（不是 9001）
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket-name: travel
+```
+
+> 📌 `endpoint` 使用 **9000 端口**（API 端口），9001 是控制台端口，后端代码不要配错。
+
+---
+
+### 4. 后端启动
+
+#### 4.1 配置核心文件 ⚠️
+
+进入 `backend/src/main/resources/`，将 `application-template.yml` 复制一份，重命名为 **`application.yml`**：
 
 ```bash
 cp backend/src/main/resources/application-template.yml    backend/src/main/resources/application.yml
 ```
 
-需要修改的配置项（详见下方 [配置说明](#-配置说明)）：
+修改以下私密配置：
 
 - [ ] MySQL 数据库账号密码
 - [ ] Redis 密码（本地无密码可留空）
@@ -240,23 +407,7 @@ cp backend/src/main/resources/application-template.yml    backend/src/main/resou
 - [ ] 讯飞星火大模型 AppID、ApiKey、ApiSecret
 - [ ] JWT 自定义加密密钥（生产环境务必更换）
 
-#### 第二步：数据库初始化
-
-1. 使用 MySQL 客户端创建数据库：
-
-```sql
-CREATE DATABASE IF NOT EXISTS travel
-  DEFAULT CHARACTER SET utf8mb4
-  DEFAULT COLLATE utf8mb4_unicode_ci;
-```
-
-2. 导入项目提供的 SQL 初始化脚本：
-
-```bash
-mysql -u root -p travel < backend/src/main/resources/sql/travel_init.sql
-```
-
-#### 第三步：启动项目
+#### 4.2 启动项目
 
 1. 使用 IDE（IntelliJ IDEA）导入 `backend` 目录
 2. Maven 自动加载依赖，或执行：
@@ -283,21 +434,21 @@ Tomcat started on port 8080 (http) with context path '/api'
 
 ---
 
-### 2. 前端启动
+### 5. 前端启动
 
-#### 第一步：导入项目
+#### 5.1 导入项目
 
 1. 打开 **HBuilderX**
 2. 选择 `文件 → 导入 → 从本地目录导入`，选择 `uniapp-front/` 目录
 
-#### 第二步：安装依赖
+#### 5.2 安装依赖
 
 ```bash
 cd uniapp-front
 npm install
 ```
 
-#### 第三步：配置后端接口地址
+#### 5.3 配置后端接口地址
 
 修改 `uniapp-front/utils/config.js`，将 `baseUrl` 改为本地后端地址：
 
@@ -310,13 +461,66 @@ const config = {
 export default config;
 ```
 
-#### 第四步：编译运行
+#### 5.4 编译运行
 
 1. 点击 HBuilderX 菜单栏 `运行 → 运行到小程序模拟器 → 微信开发者工具`
 2. 首次运行需配置微信开发者工具路径（`设置 → 运行配置`）
 3. 微信开发者工具自动打开，即可预览小程序
 
-> 📌 **注意**：微信登录功能需要在微信开发者工具中配置合法域名，本地开发可勾选「不校验合法域名」进行测试。
+> 📌 **注意**：微信登录功能需要在微信开发者工具中配置合法域名，本地开发可勾选「详情 → 本地设置 → 不校验合法域名」进行测试。
+
+---
+
+## 🗄️ 数据库表结构
+
+以下是项目核心表的结构说明，帮助理解业务数据模型。
+
+### 核心表关系图
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│    user     │────→│chat_history │     │ t_travel_plan│
+│  (用户表)   │     │(AI聊天历史) │     │ (旅行计划)  │
+└─────────────┘     └─────────────┘     └─────────────┘
+       │
+       │ 1:N
+       ▼
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│user_answer_ │────→│  question   │     │   banner    │
+│  record     │     │  (题库表)   │     │ (轮播图表)  │
+│(答题记录)   │     └─────────────┘     └─────────────┘
+└─────────────┘
+       │
+       │ 1:N
+       ▼
+┌─────────────┐
+│user_answer_ │
+│   detail    │
+│(答题详情)   │
+└─────────────┘
+
+┌─────────────┐     ┌─────────────┐
+│    team     │────→│ team_member │
+│  (组队表)   │     │(组队成员表) │
+└─────────────┘     └─────────────┘
+
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   scenic    │────→│ scenic_play │     │ tb_private_ │
+│  (景点表)   │     │(游玩推荐表) │     │   guide     │
+└─────────────┘     └─────────────┘     └─────────────┘
+```
+
+### 关键字段设计说明
+
+| 表名 | 关键字段 | 设计意图 |
+|------|---------|---------|
+| `user` | `openid` | 微信唯一标识，建立 UK 索引防止重复注册 |
+| `scenic` | `tag` (JSON) | 灵活存储景点标签数组，如 `["著名", "名胜古迹"]` |
+| `scenic` | `address` (JSON) | 存储经纬度数组 `["经度", "纬度"]` |
+| `question` | `options` (JSON) | 存储选项数组，支持动态选项数量 |
+| `t_travel_plan` | `plan_content` (JSON) | 存储 AI 生成的完整结构化行程 |
+| `t_travel_plan` | `preferences` (JSON) | 用户兴趣标签，如 `["美食", "自然风光"]` |
+| 所有业务表 | `is_delete` | MyBatis-Plus 逻辑删除字段，0=未删除，1=已删除 |
 
 ---
 
@@ -341,7 +545,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/travel?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root                # 修改为你的 MySQL 用户名
-    password: root                # 修改为你的 MySQL 密码
+    password: xxxxxxxx            # 修改为你的 MySQL 密码
 ```
 
 ### Redis 配置
@@ -392,17 +596,13 @@ mybatis-plus:
 
 ```yaml
 minio:
-  endpoint: http://localhost:9000      # MinIO 服务地址
+  endpoint: http://localhost:9000      # MinIO API 地址（9000端口）
   access-key: minioadmin               # MinIO AccessKey
   secret-key: minioadmin               # MinIO SecretKey
   bucket-name: travel                  # 存储桶名称（需提前创建）
 ```
 
-> 💡 **MinIO 快速启动（Docker）**：
-> ```bash
-> docker run -p 9000:9000 -p 9001:9001 >   --name minio >   -e "MINIO_ROOT_USER=minioadmin" >   -e "MINIO_ROOT_PASSWORD=minioadmin" >   -v ~/minio/data:/data >   quay.io/minio/minio server /data --console-address ":9001"
-> ```
-> 访问 `http://localhost:9001` 进入控制台，手动创建 `travel` 存储桶。
+> 📌 详细安装步骤见上方 [MinIO 对象存储安装配置](#3-minio-对象存储安装配置)。
 
 ### 微信小程序配置
 
@@ -482,15 +682,38 @@ spark:
 
 ## ❓ 常见问题
 
-### Q1: MinIO 连接失败，上传图片报错？
+### Q1: 导入 SQL 报错 "Unknown character set" 或 "utf8mb4_0900_ai_ci"？
+
+**原因**：MySQL 版本低于 8.0，不支持 `utf8mb4_0900_ai_ci` 排序规则。
+
+**解决**：升级 MySQL 到 8.0+，或手动将 SQL 文件中所有 `utf8mb4_0900_ai_ci` 替换为 `utf8mb4_general_ci`。
+
+---
+
+### Q2: 导入 SQL 后景点图片显示不出来？
+
+**原因**：SQL 中的示例图片使用公网占位图，或你使用的是本地 MinIO 内网地址。
+
+**解决**：
+1. 启动 MinIO 并创建 `travel` 桶
+2. 上传自己的景点图片到 MinIO
+3. 更新 `scenic` 表的 `img` 字段为 `http://localhost:9000/travel/xxx.jpg`
+
+---
+
+### Q3: MinIO 连接失败，上传图片报错？
 
 **排查步骤：**
-1. 检查本地 MinIO 服务是否已启动：`docker ps` 或访问 `http://localhost:9001`
+1. 检查本地 MinIO 服务是否已启动：`docker ps | grep minio`
 2. 确认端口 9000（API 端口）和 9001（控制台端口）是否开放
 3. 核对 `application.yml` 中的 `endpoint`、`access-key`、`secret-key` 是否正确
 4. 确认 `travel` 存储桶已创建，且权限为 `public` 或已配置正确的访问策略
+5. 检查 `application.yml` 中 `minio.endpoint` 是否写的是 **9000 端口**（不是 9001）
+6. 检查本地开发可设为 Public
+7. 检查微信小程序是否勾选不校验合法域名
+---
 
-### Q2: 微信登录报错 "appid missing" 或 "code 无效"？
+### Q4: 微信登录报错 "appid missing" 或 "code 无效"？
 
 **排查步骤：**
 1. 检查 `application.yml` 中 `wechat.mini.appid` 和 `appsecret` 是否配置正确
@@ -498,7 +721,9 @@ spark:
 3. 检查前端 `wx.login()` 获取的 `code` 是否及时传给后端（code 有效期约 5 分钟）
 4. 本地开发时，在微信开发者工具中勾选「详情 → 本地设置 → 不校验合法域名」
 
-### Q3: AI 问答无响应或返回错误？
+---
+
+### Q5: AI 问答无响应或返回错误？
 
 **排查步骤：**
 1. 核对讯飞星火开放平台中的 `app-id`、`api-key`、`api-secret` 是否过期
@@ -506,7 +731,9 @@ spark:
 3. 检查网络是否能访问 `https://spark-api-open.xf-yun.com`
 4. 查看后端日志，确认请求参数和返回错误码
 
-### Q4: 后端启动成功，但前端请求接口报 404？
+---
+
+### Q6: 后端启动成功，但前端请求接口报 404？
 
 **排查步骤：**
 1. 确认后端日志中 `context path` 为 `/api`，而非空字符串
@@ -514,7 +741,9 @@ spark:
 3. 确认前端请求的 `baseUrl` 包含 `/api` 前缀，如 `http://localhost:8080/api`
 4. 清除浏览器/微信开发者工具缓存，重新编译前端
 
-### Q5: Redis 连接报错 "Connection refused"？
+---
+
+### Q7: Redis 连接报错 "Connection refused"？
 
 **排查步骤：**
 1. 确认本地 Redis 服务已启动：`redis-cli ping` 应返回 `PONG`
