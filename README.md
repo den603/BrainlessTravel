@@ -606,7 +606,7 @@ minio:
 ```yaml
 wechat:
   mini:
-    appid: wxe261b7fac58b7fc7          # 替换为你的小程序 AppID
+    appid: xxxxxxxxxxxxxxxxxxxx        # 替换为你的小程序 AppID
     appsecret: xxxxxxxxxxxxxxxxxxxx    # 替换为你的小程序 AppSecret
     login-url: https://api.weixin.qq.com/sns/jscode2session
 ```
