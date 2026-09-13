@@ -14,7 +14,7 @@
 // 【为什么图片地址不用单独改】
 //   MinIO 与网关部署在同一台电脑上，因此 MINIO_BASE 由 BASE_URL 自动推导出
 //   （协议 + 主机名不变，端口换成 9000）。
-//   若哪天 MinIO 部署到别的机器，再单独把 MINIO_BASE_OVERRIDE 填上即可。
+//   若哪天 MinIO 部署到别的机器，把下面的 MINIO_BASE 直接改成完整地址即可。
 //
 // 【为什么数据库只存相对路径】
 //   数据库里 scenic.img 存的是 `scenic/xxx.jpg` 这样的相对路径，不是完整 URL。
