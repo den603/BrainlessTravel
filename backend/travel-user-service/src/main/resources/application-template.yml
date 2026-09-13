@@ -1,0 +1,85 @@
+# ============================================================
+# travel-user-service 配置模板
+# 复制本文件为 application.yml 后填入真实值。
+# application.yml 含真实密钥，已在 .gitignore 中排除，不上传 GitHub。
+# ============================================================
+server:
+  port: 8081
+  servlet:
+    # 保留 /api 前缀：网关路由不剥离前缀，前端请求路径因此完全不变
+    context-path: /api
+
+spring:
+  application:
+    name: travel-user-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+      config:
+        server-addr: localhost:8848
+        file-extension: yaml
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/travel?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: 【填写你的MySQL用户名，默认一般为root】
+    password: 【填写你的MySQL数据库登录密码】
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: 【Redis访问密码，无密码直接留空】
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+      enabled: true
+
+mybatis-plus:
+  type-aliases-package: net.togogo.travel.user.entity
+  global-config:
+    db-config:
+      logic-delete-field: is_delete
+      logic-not-delete-value: 0
+      logic-delete-value: 1
+  configuration:
+    map-underscore-to-camel-case: true
+
+# ========== MinIO 对象存储配置 ==========
+# 【说明】数据库只保存**相对 object key**（如 scenic/xxx.jpg），完整访问地址由前端
+# uniapp-front/api/config.js 的 MINIO_BASE 统一拼接，因此 endpoint 不影响已入库数据，
+# 换网络/IP 不会导致历史图片失效（这一点已根治，无需再批量改库）。
+# endpoint 仅用于：1) 后端连接 MinIO 客户端；2) 兼容解析历史遗留的绝对 URL。
+minio:
+  endpoint: http://localhost:9000
+  access-key: 【填写你的MinIO账号】
+  secret-key: 【填写你的MinIO访问密钥】
+  bucket-name: travel
+
+# 微信小程序登录配置
+wechat:
+  mini:
+    appid: 【前往微信公众平台申请自己的小程序AppID】
+    appsecret: 【对应小程序的AppSecret密钥】
+    login-url: https://api.weixin.qq.com/sns/jscode2session # 微信官方固定接口地址无需修改
+
+# JWT 令牌加密配置
+# 【重要】必须与 travel-gateway、travel-ai-service 三处完全一致，
+# 否则网关无法解析本服务签发的 token。
+jwt:
+  secret: 【自定义JWT加密密钥，建议64位以上复杂随机字符串，三个服务保持一致】
+  expire: 86400000 # token有效期：1天（单位：毫秒）
+
+logging:
+  level:
+    root: INFO
+    net.togogo.travel.user: INFO
+    cn.hutool: WARN

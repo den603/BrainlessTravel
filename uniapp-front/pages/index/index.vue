@@ -23,7 +23,7 @@
         <!-- 左侧列 -->
         <template v-slot:left="{leftList}">
           <view class="demo-water" v-for="(item,index) in leftList":key="index" @click="goDetail(item)">
-            <up-lazy-load threshold="-450" border-radius="10" :image="item.img" :index="index"></up-lazy-load>
+            <up-lazy-load threshold="-450" border-radius="10" :image="resolveImage(item.img)" :index="index"></up-lazy-load>
             <view class="demo-title">
               {{item.title}}
             </view>
@@ -49,7 +49,7 @@
         <!-- 右侧列 -->
         <template v-slot:right="{rightList}">
           <view class="demo-water" v-for="(item,index) in rightList":key="index" @click="goDetail(item)">
-            <up-lazy-load threshold="-450" border-radius="10" :image="item.img" :index="index"></up-lazy-load>
+            <up-lazy-load threshold="-450" border-radius="10" :image="resolveImage(item.img)" :index="index"></up-lazy-load>
             <view class="demo-title">
               {{item.title}}
             </view>
@@ -94,6 +94,8 @@
 <script setup>
   // 导入接口请求方法
   import { getBanner, getHomeList } from '../../api/api.js';
+  // 图片地址解析：数据库只存相对路径，这里拼成完整的 MinIO 地址
+  import { resolveImage } from '../../api/config.js';
   // 导入uni-app生命周期和页面事件
   import { onLoad, onReachBottom, onPageScroll } from '@dcloudio/uni-app';
   // 导入vue响应式API
@@ -117,7 +119,12 @@
      // 请求轮播图数据（不变）
      getBanner().then(res => {
        console.log('轮播图数据：', res);
-       bannerList.value = res.bannerList || [];
+       // 【新增】图片地址解析：数据库只存相对路径（如 banner/1.jpg），
+       // 这里统一拼成完整的 MinIO 地址；up-swiper 的 keyName="image" 保持不变
+       bannerList.value = (res.bannerList || []).map(item => ({
+         ...item,
+         image: resolveImage(item.image)
+       }));
      }).catch(err => {
        console.error('获取轮播图失败：', err);
        bannerList.value = [];

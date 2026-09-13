@@ -19,7 +19,7 @@
 					indicatoorActiveColor="#f56c6c"
 					>
 						<view class="items" v-for="(item,index) in detailInfo.other" :key="item.id" >
-							<image class="img" :src="item.url" mode="aspectFill"></image>
+							<image class="img" :src="resolveImage(item.url)" mode="aspectFill"></image>
 							<view class="title">{{item.name}}</view>
 						</view>
 					</up-scroll-list>
@@ -32,6 +32,8 @@
 <script setup>
 	import{onLoad} from '@dcloudio/uni-app'
 	import { projectInfo } from '../../api/api.js';
+	// 图片地址解析：数据库只存相对路径，这里拼成完整的 MinIO 地址
+	import { resolveImage } from '../../api/config.js';
 	import { 
 		ref,
 		reactive

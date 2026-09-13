@@ -1,5 +1,5 @@
 // api/team.js
-const BASE_URL = 'http://localhost:8080/api'; 
+import { API_BASE as BASE_URL } from './config.js'; // 地址统一在 config.js 配置 
 
 const request = (url, method, data, needToken = true) => {
   return new Promise((resolve, reject) => {

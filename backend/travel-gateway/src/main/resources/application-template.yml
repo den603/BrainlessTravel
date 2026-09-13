@@ -1,0 +1,58 @@
+# ============================================================
+# travel-gateway 配置模板
+# 复制本文件为 application.yml 后填入真实值。
+# application.yml 含真实密钥，已在 .gitignore 中排除，不上传 GitHub。
+# ============================================================
+server:
+  port: 8080
+
+spring:
+  application:
+    name: travel-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+      config:
+        server-addr: localhost:8848
+        file-extension: yaml
+    gateway:
+      discovery:
+        locator:
+          enabled: false  # 关闭自动路由，使用手动路由
+      routes:
+        - id: user-service
+          uri: lb://travel-user-service
+          predicates:
+            # 文档约定前缀 + 单体 Controller 真实前缀 取并集
+            - Path=/api/login/**,/api/scenic/**,/api/scenicPlay/**,/api/team/**,/api/qa/**,/api/file/**,/api/banner/**,/api/base/**,/api/groupBooking/**,/api/guideBooking/**,/api/traveler/**,/api/group/booking/**,/api/guide/booking/**,/api/upload/**
+        - id: ai-service
+          uri: lb://travel-ai-service
+          predicates:
+            - Path=/api/chat/**,/api/plan/**,/api/rag/**
+      # CORS 由 CorsConfig.java 的 CorsWebFilter 统一负责，此处保持注释状态，
+      # 避免两套 CORS 机制产生重复的 Access-Control-Allow-Origin 响应头。
+      # globalcors:
+      #   cors-configurations:
+      #     '[/**]':
+      #       allowed-origin-patterns: "*"
+      #       allowed-methods: "*"
+      #       allowed-headers: "*"
+      #       allow-credentials: true
+      #       max-age: 3600
+
+# JWT 密钥必须与 travel-user-service / travel-ai-service 保持完全一致，
+# 否则网关无法解析用户服务签发的 token。
+jwt:
+  secret: 【填写与你各服务一致的JWT密钥，建议64位以上随机字符串】
+  expire: 86400000
+  # 免鉴权白名单（Ant 风格路径，英文逗号分隔）
+  # 默认放行：登录接口 + 游客态只读查询接口（首页轮播图/景点列表/景点详情/游玩项目/银发模式列表/寻伴大厅）
+  # 注意：/api/scenic/add、/api/scenic/update、/api/scenic/delete/**、/api/upload/** 等写接口
+  # 一律不在白名单内，必须携带有效 token。
+  white-list: /api/login/**,/api/banner/list,/api/scenic/list,/api/scenic/detail/**,/api/scenic/play/list,/api/base/**,/api/team/list,/api/team/detail/**
+
+logging:
+  level:
+    net.togogo.travel.gateway: INFO
+    org.springframework.cloud.gateway: INFO

@@ -64,6 +64,15 @@
 - **自由聊天模式**：与讯飞星火大模型实时对话，咨询旅游攻略、预算规划、路线推荐
 - **表单模式**：输入目的地、天数、预算，AI 自动生成结构化行程单（含每日时间安排、景点推荐、餐饮住宿、费用明细）
 
+### 📚 RAG 知识库增强（LangChain4j）
+- **知识库增强开关**：AI 助手页顶部可一键开启/关闭，开启后回答优先依据景点库与知识库文档
+- **引用来源展示**：AI 回答气泡下方展示「📚 参考来源」，含文档标题、相似度、片段序号，可展开查看原文片段
+- **文档上传与解析**：支持 PDF / DOCX / TXT / XLSX（单个 ≤ 10MB），上传后异步解析、切分、向量化，不阻塞接口
+- **景点一键同步**：把 `scenic` 表景点数据一键索引进知识库，重复同步幂等（不会产生重复片段）
+- **知识库管理页**：文档列表（类型/来源/状态/片段数）、上传、删除、重建索引、下拉刷新
+- **本地中文向量模型**：BGE-small-zh-v1.5（512 维 ONNX）本地推理，零 API 依赖、零外网调用
+- **双向量存储模式**：开发用内存向量库（开箱即用），生产可切 Redis Stack
+
 ### 🤝 寻伴同游
 - 发布旅游组队信息（目的地、日期、人数、描述）
 - 大厅浏览所有组队卡片，支持关键词搜索与多维筛选
@@ -81,7 +90,9 @@
 - 个人信息管理与设置
 
 ### 🛡️ 系统能力
-- 基于 JWT 的登录校验与接口权限拦截
+- **微服务架构**：Spring Cloud Gateway 统一网关 + Nacos 注册发现/配置中心 + OpenFeign 服务间调用
+- **网关统一 JWT 鉴权**：token 校验收敛到网关，解析出的用户ID 通过 `X-User-Id` 请求头下发，下游服务零查库获取登录态
+- **前后端零改动迁移**：网关保留 `/api` 前缀，前端所有请求路径与改造前完全一致
 - Redis 缓存热门景点与用户信息，接口响应极速
 - MyBatis-Plus 逻辑删除，数据安全不丢失
 - MinIO 对象存储，支持 10MB 单文件 / 50MB 批量图片上传
@@ -142,13 +153,20 @@
 
 | 技术 | 版本 | 说明 |
 |------|------|------|
-| Spring Boot | 3.2+ | 核心框架 |
-| MyBatis-Plus | 3.5+ | ORM 框架（逻辑删除、自动填充、分页插件） |
+| Spring Boot | 3.2.5 | 核心框架 |
+| Spring Cloud | 2023.0.3 | 微服务框架（BOM 统一管理） |
+| Spring Cloud Alibaba | 2023.0.1.3 | Nacos 服务注册发现 + 配置中心 |
+| Spring Cloud Gateway | 4.1.5 | API 网关（WebFlux，统一 JWT 鉴权 + 路由 + CORS） |
+| Spring Cloud OpenFeign | 4.1.5 | 服务间声明式调用 |
+| Nacos | 2.5.0 | 注册中心 + 配置中心 |
+| MyBatis-Plus | 3.5.6 | ORM 框架（逻辑删除、自动填充、分页插件） |
 | MySQL | 8.0+ | 关系型数据库 |
 | Redis | 5.0+ | 缓存中间件（Lettuce 连接池） |
-| MinIO | 最新 | 对象存储服务（景点图片上传存储） |
+| MinIO | 8.5.7 | 对象存储服务（景点图片上传存储） |
+| LangChain4j | 0.36.0 | RAG 检索增强框架（文档解析、切分、向量检索） |
+| BGE-small-zh-v1.5 | 0.36.0 | 本地中文嵌入模型（512 维 ONNX，零 API 依赖） |
 | 讯飞星火大模型 | V2/V3 | AI 智能旅游问答、行程生成、知识评测 |
-| JWT | 0.12+ | 登录令牌认证 |
+| JWT (jjwt) | 0.11.5 | 登录令牌认证 |
 | Maven | 3.6+ | 项目构建工具 |
 
 ### 前端技术
@@ -166,39 +184,97 @@
 
 ```text
 BrainlessTravel/
-├── backend/                         # SpringBoot 后端源码
-│   ├── src/main/java/
-│   │   └── net/togogo/springboot_travel/
-│   │       ├── config/              # 配置类（Redis、MinIO、WebMvc、拦截器）
-│   │       ├── controller/          # 控制器层（用户、景点、AI、文件、问答、组队）
-│   │       ├── service/             # 业务逻辑层
-│   │       ├── mapper/              # 数据访问层（MyBatis-Plus）
-│   │       ├── entity/              # 实体类
-│   │       ├── dto/                 # 数据传输对象
-│   │       ├── vo/                  # 视图对象
-│   │       ├── utils/               # 工具类（JWT、MinIO、AI 调用封装）
-│   │       └── SpringbootTravelApplication.java
-│   ├── src/main/resources/
-│   │   ├── application.yml          # 主配置文件（⚠️ 不上传 GitHub）
-│   │   ├── application-template.yml # 配置模板（✅ 上传仓库）
-│   │   └── sql/
-│   │       └── travel_init.sql      # 数据库初始化脚本
-│   └── pom.xml
-├── uniapp-front/                    # UniApp 微信小程序前端源码
+├── backend/                              # Spring Cloud 多模块父工程
+│   ├── pom.xml                           # 父 POM（BOM 版本统一管理）
+│   ├── travel-common/                    # 公共模块（普通 jar，不可执行）
+│   │   └── net/togogo/travel/common/
+│   │       ├── Result/Result.java        # 统一返回封装
+│   │       └── util/
+│   │           ├── JwtUtil.java          # JWT 生成/校验
+│   │           └── UserContext.java      # 用户上下文（ThreadLocal）
+│   ├── travel-gateway/                   # 网关服务（8080，WebFlux）
+│   │   └── net/togogo/travel/gateway/
+│   │       ├── GatewayApplication.java
+│   │       ├── config/
+│   │       │   ├── CorsConfig.java       # CorsWebFilter 统一跨域
+│   │       │   └── GatewayConfig.java    # 网关访问日志过滤器
+│   │       └── filter/
+│   │           └── JwtAuthGlobalFilter.java  # 全局 JWT 鉴权，下发 X-User-Id
+│   ├── travel-user-service/              # 用户业务服务（8081）
+│   │   └── net/togogo/travel/user/
+│   │       ├── UserServiceApplication.java
+│   │       ├── config/                   # RedisConfig、MinioConfig、WebMvcConfig
+│   │       ├── controller/               # 11 个业务 Controller
+│   │       ├── service/                  # 业务层 + SparkService(Feign 适配)
+│   │       ├── mapper/ entity/ dto/ vo/
+│   │       ├── feign/                    # AiSparkFeignClient（调 ai-service）
+│   │       └── util/                     # UserIdInterceptor、RedisUtil、MinioUtil
+│   │   └── resources/
+│   │       ├── application.yml           # ⚠️ 含密钥，不上传 GitHub
+│   │       ├── application-template.yml  # ✅ 配置模板，上传仓库
+│   │       ├── bootstrap.yml             # Nacos 引导配置
+│   │       └── sql/travel_init.sql       # 数据库初始化脚本（含 rag_document 表）
+│   ├── travel-ai-service/                # AI + RAG 服务（8082）
+│   │   └── net/togogo/travel/ai/
+│   │       ├── AiServiceApplication.java # @EnableAsync
+│   │       ├── config/
+│   │       │   ├── RagProperties.java    # RAG 配置属性（D 盘路径）
+│   │       │   ├── RagConfig.java        # 嵌入模型/切分器/向量库 Bean
+│   │       │   ├── RedisConfig.java
+│   │       │   └── WebMvcConfig.java
+│   │       ├── controller/               # ChatController(+RAG 接口)、
+│   │       │                             # TravelPlanController、RagDocumentController、
+│   │       │                             # SparkInternalController(Feign 内部接口)
+│   │       ├── service/
+│   │       │   ├── SparkService(Impl)            # 星火大模型封装
+│   │       │   ├── TravelPlanService(Impl)       # 行程规划
+│   │       │   ├── RagService(Impl)              # RAG 检索增强
+│   │       │   └── RagDocumentService(Impl)      # 文档上传/解析/向量化
+│   │       ├── store/InMemoryEmbeddingStoreHolder.java
+│   │       ├── entity/ mapper/ dto/
+│   │       └── util/UserIdInterceptor.java
+│   │   └── resources/
+│   │       ├── application.yml           # ⚠️ 含密钥，不上传 GitHub
+│   │       └── application-template.yml  # ✅ 配置模板，上传仓库
+├── uniapp-front/                         # UniApp 微信小程序前端源码
+│   ├── api/
+│   │   ├── api.js chat.js plan.js question.js team.js
+│   │   └── rag.js                        # 📚 RAG 知识库接口封装
 │   ├── pages/
-│   │   ├── index/                   # 首页
-│   │   ├── buddy/                   # 寻伴同游
-│   │   ├── ai/                      # AI 助手（聊天 + 行程规划）
-│   │   ├── quiz/                    # 知识问答（设置 + 答题 + 结果）
-│   │   └── mine/                    # 个人中心
-│   ├── components/                  # 公共组件
-│   ├── static/                      # 静态资源
-│   ├── utils/                       # 工具封装（request、config、auth）
-│   └── manifest.json                # 小程序配置
+│   │   ├── index/                        # 首页
+│   │   ├── AI-asistant/                  # AI 助手（知识库增强开关 + 引用来源）
+│   │   ├── rag-knowledge/                # 📚 知识库管理页
+│   │   ├── SilverHairedModel/            # 银发模式（组队、私人导游、我的预约）
+│   │   ├── answer/ TravelPlanHistory/ mine/ ...
+│   ├── static/                           # 静态资源
+│   ├── pages.json                        # 页面路由注册
+│   └── manifest.json                     # 小程序配置
 ├── docs/
-│   └── screenshots/                 # 项目截图（README 引用）
-├── .gitignore                       # Git 忽略配置
-└── README.md                        # 项目说明文档
+│   └── screenshots/                      # 项目截图（README 引用）
+├── .gitignore                            # Git 忽略配置
+└── README.md                             # 项目说明文档
+```
+
+### 微服务架构
+
+```text
+微信小程序 (UniApp/Vue3)
+        │ HTTP :8080
+        ▼
+┌──────────────────────────┐
+│  travel-gateway  :8080   │  JWT 校验 · 路由转发 · CORS
+└───────┬──────────┬───────┘
+        │ lb://    │ lb://
+        ▼          ▼
+┌───────────────┐ ┌────────────────┐
+│travel-user-   │ │ travel-ai-     │
+│service :8081  │ │ service :8082  │
+│用户/景点/组队 │ │ AI对话/行程规划│
+│问答/上传/导游 │ │ RAG 知识库     │
+└───────┬───────┘ └───────┬────────┘
+        │  ┌──────────────┘
+        ▼  ▼
+   MySQL · Redis · MinIO · Nacos
 ```
 
 ---
@@ -209,9 +285,10 @@ BrainlessTravel/
 
 | 依赖 | 版本要求 | 下载/安装 |
 |------|---------|----------|
-| JDK | 17+ | [Oracle](https://www.oracle.com/java/technologies/downloads/) / [OpenJDK](https://adoptium.net/) |
+| JDK | 21+（本项目编译版本为 21） | [Oracle](https://www.oracle.com/java/technologies/downloads/) / [OpenJDK](https://adoptium.net/) |
 | MySQL | 8.0+ | [官方下载](https://dev.mysql.com/downloads/) |
 | Redis | 5.0+ | [官方下载](https://redis.io/download) |
+| Nacos | 2.x | [官方下载](https://github.com/alibaba/nacos/releases)（注册中心 + 配置中心，**必需**） |
 | Maven | 3.6+ | [官方下载](https://maven.apache.org/download.cgi) |
 | Node.js | 16+ | [官方下载](https://nodejs.org/) |
 | Docker | 任意 | [官方下载](https://www.docker.com/)（用于运行 MinIO） |
@@ -280,6 +357,7 @@ mysql -u root -p travel < backend/src/main/resources/sql/travel_init.sql
 | 首页 | `scenic_play` | 景点游玩推荐 |
 | AI 助手 | `chat_history` | AI 自由聊天历史 |
 | AI 助手 | `t_travel_plan` | AI 生成的旅行计划 |
+| AI 助手 | `rag_document` | 📚 RAG 知识库文档（用户上传 / 景点同步） |
 | 问答 | `question` | 景点题库 |
 | 问答 | `question_fallback` | 题库兜底表 |
 | 问答 | `user_answer_record` | 用户答题记录 |
@@ -387,47 +465,88 @@ minio:
 
 ### 4. 后端启动
 
-#### 4.1 配置核心文件 ⚠️
+> 后端已由单体改造为 **Spring Cloud 多模块微服务**，启动前需先启动 **Nacos 注册中心**。
 
-进入 `backend/src/main/resources/`，将 `application-template.yml` 复制一份，重命名为 **`application.yml`**：
+#### 4.1 安装并启动 Nacos（前置依赖）
 
 ```bash
-cp backend/src/main/resources/application-template.yml    backend/src/main/resources/application.yml
+# 单机模式启动（默认端口 8848）
+D:\dev-resources\nacos\bin\startup.cmd -m standalone
+# 若你已把 Nacos 装在别处（例如 D:\nacos），用你自己的路径启动即可
+```
+
+控制台地址 `http://localhost:8848/nacos`，默认账号/密码均为 `nacos`。
+
+#### 4.2 配置核心文件 ⚠️
+
+三个服务各有独立配置文件。进入各服务的 `src/main/resources/`，
+将 `application-template.yml` 复制一份并重命名为 **`application.yml`**：
+
+```bash
+cd backend
+cp travel-gateway/src/main/resources/application-template.yml       travel-gateway/src/main/resources/application.yml
+cp travel-user-service/src/main/resources/application-template.yml  travel-user-service/src/main/resources/application.yml
+cp travel-ai-service/src/main/resources/application-template.yml    travel-ai-service/src/main/resources/application.yml
 ```
 
 修改以下私密配置：
 
-- [ ] MySQL 数据库账号密码
+- [ ] MySQL 数据库账号密码（`travel-user-service` 与 `travel-ai-service` **都要改**）
 - [ ] Redis 密码（本地无密码可留空）
-- [ ] MinIO 服务端点、AccessKey、SecretKey、存储桶名
-- [ ] 微信小程序 AppID、AppSecret
-- [ ] 讯飞星火大模型 AppID、ApiKey、ApiSecret
-- [ ] JWT 自定义加密密钥（生产环境务必更换）
+- [ ] MinIO 服务端点、AccessKey、SecretKey、存储桶名（`travel-user-service`）
+- [ ] 微信小程序 AppID、AppSecret（`travel-user-service`）
+- [ ] 讯飞星火大模型 AppID、ApiKey、ApiSecret（`travel-ai-service`）
+- [ ] JWT 自定义加密密钥 —— **三个服务的 `jwt.secret` 必须完全一致**，否则网关无法解析 token
 
-#### 4.2 启动项目
+> `application.yml` 已加入 `.gitignore`，不会被提交到 GitHub；`application-template.yml` 模板会正常提交。
 
-1. 使用 IDE（IntelliJ IDEA）导入 `backend` 目录
-2. Maven 自动加载依赖，或执行：
+#### 4.3 编译打包
 
 ```bash
 cd backend
-mvn clean install
+mvn clean package -DskipTests
 ```
 
-3. 运行 `SpringbootTravelApplication.java` 启动类
+父工程会依次构建 `travel-common` → `travel-gateway` → `travel-user-service` → `travel-ai-service`，
+四个模块全部 `BUILD SUCCESS` 即表示编译通过。
+
+#### 4.4 按顺序启动各服务
+
+```bash
+# 1) 中间件先行：MySQL(3306) → Redis(6379) → MinIO(9000) → Nacos(8848)
+
+# 2) 再启动两个业务服务（顺序不分先后）
+java -jar travel-user-service/target/travel-user-service-1.0.0.jar    # 8081
+java -jar travel-ai-service/target/travel-ai-service-1.0.0.jar       # 8082
+
+# 3) 最后启动网关
+java -jar travel-gateway/target/travel-gateway-1.0.0.jar             # 8080
+```
+
+或在 IDEA 中依次运行三个启动类：`UserServiceApplication` → `AiServiceApplication` → `GatewayApplication`。
 
 ```
-后端默认端口：8080
-接口根路径：/api
-完整接口地址：http://localhost:8080/api/
+网关统一入口：http://localhost:8080
+前端请求路径与改造前完全一致（如 http://localhost:8080/api/scenic/list）
 ```
 
-启动成功后，控制台应输出：
+启动成功的标志：
 
+- Nacos 控制台「服务列表」中出现 `travel-user-service`、`travel-ai-service`、`travel-gateway` 三个实例
+- `travel-ai-service` 首次启动会输出「模型资源已提取到 D 盘」，为 BGE 模型落盘（约 95MB，仅首次）
+
+#### 4.5 初始化 RAG 知识库（首次使用）
+
+```bash
+# ① 景点数据一键同步进知识库（返回同步数量）
+curl -X POST http://localhost:8080/api/rag/sync/scenic -H "Authorization: Bearer <你的token>"
+
+# ② 验证检索是否命中
+curl "http://localhost:8080/api/rag/retrieve?query=故宫门票" -H "Authorization: Bearer <你的token>"
 ```
-Tomcat started on port 8080 (http) with context path '/api'
-景区后端服务启动成功！
-```
+
+> ⚠️ 开发模式默认使用**内存向量库**，服务重启后向量会丢失，需调用 `POST /api/rag/reindex` 重建；
+> 生产环境请把 `rag.store-type` 切换为 `redis`（**需 Redis Stack**，普通 Redis 不支持向量检索）。
 
 ---
 

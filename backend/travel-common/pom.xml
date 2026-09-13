@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>net.togogo</groupId>
+        <artifactId>brainless-travel</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>travel-common</artifactId>
+    <name>travel-common</name>
+    <description>公共模块：Result 统一返回、JwtUtil、UserContext</description>
+
+    <dependencies>
+        <!--
+          【关键注意事项 / WebFlux 冲突防护】
+          travel-common 被 travel-gateway 依赖，而网关基于 WebFlux，
+          文档硬约束「网关模块严禁引入 spring-boot-starter-web」。
+          因此此处必须声明 <optional>true</optional> —— optional 依赖不会传递给下游模块，
+          保证 spring-boot-starter-web 永远不会出现在网关的 classpath 上。
+          非网关模块（user-service / ai-service）各自显式引入 starter-web。
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- JWT 工具（jjwt-api 编译期；impl/jackson 运行期） -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+              公共模块是普通 jar，不可执行。
+              父 POM 已声明 spring-boot-maven-plugin，子模块会继承其 repackage 执行绑定，
+              对无主类的普通 jar 会报 "Unable to find main class"，因此必须显式 skip。
+              （文档要求：公共模块不引入 spring-boot-maven-plugin，此处以 skip 方式等价实现）
+            -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

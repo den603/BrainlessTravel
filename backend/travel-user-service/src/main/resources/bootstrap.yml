@@ -1,0 +1,17 @@
+# ============================================================
+# Nacos Config 引导配置（bootstrap 上下文，先于 application.yml 加载）
+# 依赖 spring-cloud-starter-bootstrap 才会生效
+# ============================================================
+spring:
+  application:
+    name: travel-user-service
+  cloud:
+    nacos:
+      # 【C盘防护】Nacos 数据目录随安装目录落在 D 盘，不产生 C 盘占用
+      config:
+        server-addr: localhost:8848
+        file-extension: yaml
+        namespace: public
+        # Nacos 中不存在 travel-user-service.yaml 时仅告警，不阻断启动（本地开发场景）
+        import-check:
+          enabled: false

@@ -1,0 +1,91 @@
+# ============================================================
+# travel-ai-service 配置模板
+# 复制本文件为 application.yml 后填入真实值。
+# application.yml 含真实密钥，已在 .gitignore 中排除，不上传 GitHub。
+# ============================================================
+server:
+  port: 8082
+  servlet:
+    # 保留 /api 前缀：网关路由不剥离前缀
+    context-path: /api
+
+spring:
+  application:
+    name: travel-ai-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+      config:
+        server-addr: localhost:8848
+        file-extension: yaml
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 与 user-service 连接同一个库（景点同步直接查 MySQL，不走 Feign）
+    url: jdbc:mysql://localhost:3306/travel?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: 【填写你的MySQL用户名，默认一般为root】
+    password: 【填写你的MySQL数据库登录密码】
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: 【Redis访问密码，无密码直接留空】
+      database: 0
+      timeout: 3000ms
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+      enabled: true
+
+mybatis-plus:
+  type-aliases-package: net.togogo.travel.ai.entity
+  global-config:
+    db-config:
+      logic-delete-field: is_delete
+      logic-not-delete-value: 0
+      logic-delete-value: 1
+  configuration:
+    map-underscore-to-camel-case: true
+
+# 讯飞星火大模型配置
+spark:
+  app-id: 【讯飞开放平台控制台获取应用ID】
+  api-key: 【讯飞开放平台获取API Key】
+  api-secret: 【讯飞开放平台获取API Secret】
+  url: https://spark-api-open.xf-yun.com/x2/chat/completions
+
+# JWT 令牌配置
+# 【重要】必须与 travel-gateway、travel-user-service 三处完全一致
+jwt:
+  secret: 【自定义JWT加密密钥，建议64位以上复杂随机字符串，三个服务保持一致】
+  expire: 86400000 # token有效期：1天（单位：毫秒）
+
+# ========== RAG 检索增强生成配置 ==========
+rag:
+  enabled: true
+  # memory：内存向量库（开箱即用，重启丢失向量，仅开发测试）
+  # redis ：Redis 向量存储（**必须是 Redis Stack**，普通 Redis 会启动失败）
+  store-type: memory
+  # 【C盘防护关键点】以下两个目录必须保持在 D 盘，禁止改为 C 盘路径。
+  # 首次启动时会把 jar 内约 95MB 的 BGE ONNX 模型提取到 model-path 下，
+  # 之后从 D 盘加载；上传的 PDF/DOCX/TXT/XLSX 文档保存在 doc-storage-path 下。
+  model-path: D:\dev-resources\rag-models
+  doc-storage-path: D:\dev-resources\rag-docs
+  splitter:
+    chunk-size: 500
+    chunk-overlap: 50
+  retrieval:
+    top-k: 4
+    min-score: 0.3
+  redis:
+    index-name: rag_embeddings
+    # BGE-small-zh-v1.5 固定 512 维，不可修改
+    vector-dimension: 512
+
+logging:
+  level:
+    root: INFO
+    net.togogo.travel.ai: INFO
+    cn.hutool: WARN
+    dev.langchain4j: INFO

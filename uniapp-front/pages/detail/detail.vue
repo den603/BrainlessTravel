@@ -2,7 +2,7 @@
 	<view class="detail">
 		<up-navbar title=""  bg-color="#00000000" :autoBack="true" left-icon-color="#fff"/>
 		<view class="d-con">
-			<image :src="details.dt.img" mode="aspectFill"></image>
+			<image :src="resolveImage(details.dt.img)" mode="aspectFill"></image>
 			<view class="d-content">
 				<view class="j-con">
 					<view class="tit" style="display:flex;">
@@ -23,7 +23,7 @@
 						<view class="tit" style="font-size: 34rpx;">游玩推荐</view>
 						<view class="jj tj-list">
 							<view class="item" v-for="(item,index) in projectList " :key="index"  @click="goLine(item)">
-								<image :src="item.url" mode="aspectFill"></image>
+								<image :src="resolveImage(item.url)" mode="aspectFill"></image>
 								<view class="topFiex">
 									{{item.tag}}
 								</view>
@@ -47,6 +47,8 @@
 import{onLoad} from '@dcloudio/uni-app'
 import { ref,reactive } from 'vue'
 import {detailProject} from '../../api/api.js'
+// 图片地址解析：数据库只存相对路径，这里拼成完整的 MinIO 地址
+import { resolveImage } from '../../api/config.js'
 
 const details = reactive({
 	dt:''

@@ -1,6 +1,6 @@
 {
     "name" : "BrainlessTravel un-app",
-    "appid" : "__UNI__9AFAF11",
+    "appid" : "__UNI__1A8771B",
     "description" : "",
     "versionName" : "1.0.0",
     "versionCode" : "100",
@@ -50,12 +50,12 @@
     "quickapp" : {},
     /* 小程序特有相关 */
     "mp-weixin" : {
-        "appid" : "",
+        "appid" : "wxe261b7fac58b7fc7",
         "setting" : {
             "urlCheck" : false
         },
         "usingComponents" : true,
-		"cloudfunctionRoot":"cloudfunctions/"
+        "cloudfunctionRoot" : "cloudfunctions/"
     },
     "mp-alipay" : {
         "usingComponents" : true

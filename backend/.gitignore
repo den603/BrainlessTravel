@@ -4,6 +4,12 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# 【核心】各微服务的真实配置（含 MySQL/Redis/JWT/星火密钥），不上传 GitHub
+# application-template.yml 模板不在排除范围内，需正常提交
+**/src/main/resources/application.yml
+**/src/main/resources/application.properties
+**/src/main/resources/application-local.yml
+
 ### STS ###
 .apt_generated
 .classpath

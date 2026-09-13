@@ -1,5 +1,5 @@
 // api/chat.js
-const BASE_URL = 'http://localhost:8080'; // 与 plan.js 保持一致
+import { BASE_URL } from './config.js'; // 地址统一在 config.js 配置
 
 const request = (url, method, data) => {
   const token = uni.getStorageSync('token');

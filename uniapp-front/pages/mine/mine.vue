@@ -50,6 +50,8 @@
 					<uni-list-item :show-extra-icon="true" :extra-icon="extraIcon3" showArrow title="用户反馈" clickable></uni-list-item>
 					<uni-list-item :show-extra-icon="true" :extra-icon="extraIcon4" showArrow title="我的邮件" clickable></uni-list-item>
 					<uni-list-item :show-extra-icon="true" :extra-icon="extraIcon5" showArrow title="分享有礼" clickable></uni-list-item>
+					<!-- 【新增】知识库管理入口 -->
+					<uni-list-item :show-extra-icon="true" :extra-icon="extraIcon6" showArrow title="知识库管理" clickable @click="toRagKnowledge"></uni-list-item>
 				</uni-list>
 			</view>
 		</view>
@@ -89,6 +91,8 @@ const extraIcon2 = reactive({ color: '#666666', size: '22', type: 'cart' })
 const extraIcon3 = reactive({ color: '#666666', size: '22', type: 'chatboxes' })
 const extraIcon4 = reactive({ color: '#666666', size: '22', type: 'email' })
 const extraIcon5 = reactive({ color: '#666666', size: '22', type: 'gift' })
+// 【新增】知识库管理入口图标
+const extraIcon6 = reactive({ color: '#666666', size: '22', type: 'folder-add' })
 
 // 弹窗控制
 const show = ref(false)
@@ -150,6 +154,13 @@ const setFun = () => {
 				})
 			}
 		}
+	})
+}
+
+// 【新增】跳转知识库管理页
+const toRagKnowledge = () => {
+	uni.navigateTo({
+		url: '/pages/rag-knowledge/rag-knowledge'
 	})
 }
 

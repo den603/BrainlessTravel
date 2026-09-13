@@ -13,7 +13,7 @@
       <view class="form-item">
         <text class="label">景点图片</text>
         <view class="upload-box" @click="chooseImage">
-          <image v-if="form.img" :src="form.img" mode="aspectFill" class="preview-img"></image>
+          <image v-if="form.img" :src="resolveImage(form.img)" mode="aspectFill" class="preview-img"></image>
           <view v-else class="upload-placeholder">
             <up-icon name="plus" size="40" color="#ccc"></up-icon>
             <text>点击上传图片</text>
@@ -69,7 +69,8 @@
 import { ref, reactive } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 
-const BASE_URL = 'http://localhost:8080'; // 与 api.js 保持一致
+// 地址与图片解析统一从 config.js 读取，换网络只改那一个文件
+import { BASE_URL, resolveImage } from '@/api/config.js';
 
 const form = reactive({
   title: '',

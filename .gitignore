@@ -18,8 +18,12 @@ backend/heapdump*.hprof
 backend/.mvn/wrapper/maven-wrapper.jar
 
 # 【核心】屏蔽带密码密钥的本地开发配置（绝对不上传GitHub）
-backend/src/main/resources/application.yml
-backend/src/main/resources/application.properties
+# 微服务化后，travel-gateway / travel-user-service / travel-ai-service
+# 三个服务各有自己的 application.yml（含 MySQL/Redis/JWT/星火密钥），全部排除。
+# 注意：application-template.yml 是配置模板，必须保留并提交。
+**/src/main/resources/application.yml
+**/src/main/resources/application.properties
+**/src/main/resources/application-local.yml
 
 # ===================== UniApp 微信小程序前端相关忽略 =====================
 # 前端依赖包（体积超大，使用者本地npm install生成）
@@ -41,3 +45,7 @@ uniapp-front/.DS_Store
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ===================== 本地交付文档（不上传 GitHub） =====================
+/docs/LANGCHAIN_RAG_DEV_REQUIREMENTS.md
+/docs/MIGRATION_DELIVERY.md

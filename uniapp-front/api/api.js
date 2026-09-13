@@ -37,7 +37,8 @@ export const projectInfo=(data) =>{
 // 这是你uni-app的 api.js 完整代码
 // 后端基础地址：SpringBoot 运行地址 + 端口
 // 后端基础地址：SpringBoot 运行地址 + 端口
-const baseUrl = "http://localhost:8080/api";
+// 统一从 config.js 读取地址：换网络只需改 config.js 一个文件
+import { API_BASE as baseUrl } from './config.js';
 
 /**
  * 通用请求封装

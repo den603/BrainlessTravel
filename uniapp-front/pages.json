@@ -122,9 +122,16 @@
 		},
 		{
 			"path" : "pages/addScenic/addScenic",
-			"style" : 
+			"style" :
 			{
 				"navigationBarTitleText" : "添加景点"
+			}
+		},
+		{
+			"path": "pages/rag-knowledge/rag-knowledge",
+			"style": {
+				"navigationBarTitleText": "知识库管理",
+				"enablePullDownRefresh": true
 			}
 		}
 	],

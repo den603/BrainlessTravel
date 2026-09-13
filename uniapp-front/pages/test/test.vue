@@ -24,7 +24,7 @@ import { ref } from 'vue';
 const result = ref("");
 
 // 后端基础地址
-const baseUrl = "http://localhost:8080/api";
+import { API_BASE as baseUrl } from '@/api/config.js'; // 地址统一在 config.js 配置
 
 // GET 请求
 const getData = async () => {

@@ -22,8 +22,18 @@
     </view>
     <!-- ==================== 自由聊天模式 ==================== -->
     <view v-show="currentTab === 0">
-      <!-- 顶部占位：导航栏 + 标签栏 -->
-      <view :style="{ height: (navHeightNum + tabHeight) + 'px' }"></view>
+      <!-- 【新增】知识库增强（RAG）开关，默认开启 -->
+      <view class="rag-switch-bar" :style="{ top: (navHeightNum + tabHeight) + 'px' }">
+        <view class="rag-switch-info">
+          <text class="rag-switch-title">知识库增强</text>
+          <text class="rag-switch-tip">
+            {{ useRag ? '已开启：优先依据景点与知识库文档作答' : '已关闭：使用通用大模型作答' }}
+          </text>
+        </view>
+        <switch :checked="useRag" color="#2897CE" :disabled="sendInState" @change="onRagSwitchChange" />
+      </view>
+      <!-- 顶部占位：导航栏 + 标签栏 + 知识库开关栏 -->
+      <view :style="{ height: (navHeightNum + tabHeight + ragBarHeight) + 'px' }"></view>
       <!-- 欢迎语 -->
       <view class="Sent_information backdrop your-elemt" v-if="messageData.length <= 0">
         {{ greetSb }}
@@ -63,6 +73,34 @@
               src="/static/tabbar/复制.png"
               mode="widthFix"
             ></image>
+          </view>
+          <!-- 【新增】RAG 引用来源展示：开启知识库增强且有命中片段时才显示 -->
+          <view class="rag-sources" v-if="item.sources && item.sources.length > 0">
+            <view class="rag-sources-header">
+              <text>📚 参考来源</text>
+              <text class="rag-sources-count">{{ item.sources.length }} 条</text>
+            </view>
+            <view
+              class="rag-source-item"
+              v-for="(source, sIndex) in item.sources"
+              :key="sIndex"
+              @click="toggleSource(index, sIndex)"
+            >
+              <view class="rag-source-head">
+                <text class="rag-source-name">[{{ sIndex + 1 }}] {{ source.title || '未命名文档' }}</text>
+                <text class="rag-source-score">{{ formatScore(source.score) }}</text>
+              </view>
+              <view class="rag-source-meta">
+                {{ source.fileType || '文档' }}
+                <text v-if="source.chunkIndex !== null && source.chunkIndex !== undefined">
+                  · 片段 {{ source.chunkIndex }}
+                </text>
+                <text class="rag-source-toggle">{{ isSourceExpanded(index, sIndex) ? '收起 ▲' : '展开 ▼' }}</text>
+              </view>
+              <view class="rag-source-content" v-if="isSourceExpanded(index, sIndex)">
+                {{ source.content }}
+              </view>
+            </view>
           </view>
         </view>
       </block>
@@ -209,12 +247,38 @@
 import { ref, reactive } from 'vue';
 import { MenuButton } from '@/api/MenuButton.js';
 import { generatePlan } from '@/api/plan.js';
-import { chatAsk } from '@/api/chat.js'; // 【新增】引入聊天 API
+import { chatAsk } from '@/api/chat.js'; // 引入聊天 API
+import { chatAskRag } from '@/api/rag.js'; // 【新增】引入 RAG 知识库增强聊天 API
 
 // ============ 获取导航栏纯数字高度 ============
 const menuInfo = uni.getStorageSync('MenuButton');
 const navHeightNum = menuInfo.top + menuInfo.height;
 const tabHeight = 50;
+const ragBarHeight = 46; // 【新增】知识库开关栏高度(px)，用于顶部占位计算
+
+// ==================== 【新增】知识库增强（RAG）开关 ====================
+// 默认开启：回答优先依据景点库/知识库文档，并在气泡下方展示引用来源
+const useRag = ref(true);
+const onRagSwitchChange = (e) => {
+  useRag.value = e.detail.value;
+  uni.showToast({
+    title: useRag.value ? '已开启知识库增强' : '已关闭知识库增强',
+    icon: 'none'
+  });
+};
+
+// 引用来源展开状态：按「消息下标-片段下标」记录，避免给每条来源单独加字段
+const expandedSourceKeys = ref({});
+const sourceKey = (messageIndex, sourceIndex) => `${messageIndex}-${sourceIndex}`;
+const isSourceExpanded = (messageIndex, sourceIndex) =>
+  !!expandedSourceKeys.value[sourceKey(messageIndex, sourceIndex)];
+const toggleSource = (messageIndex, sourceIndex) => {
+  const key = sourceKey(messageIndex, sourceIndex);
+  expandedSourceKeys.value[key] = !expandedSourceKeys.value[key];
+};
+// 相似度得分展示：保留3位小数
+const formatScore = (score) =>
+  score === null || score === undefined ? '' : `相似度 ${Number(score).toFixed(3)}`;
 
 // ==================== 模式切换 ====================
 const currentTab = ref(0);
@@ -237,7 +301,12 @@ const messageData = ref([]);
 const sendInState = ref(false);
 
 /**
- * 【核心修改】发送消息：从 WebSocket 改为 HTTP 调用 SpringBoot 后端
+ * 发送消息（HTTP 调用后端）
+ *
+ * 【RAG 改造说明】
+ * - 知识库增强开关开启时：调用 /api/chat/ask/rag，返回 { answer, ragEnabled, sources }
+ *   并把 sources 挂到消息对象上用于气泡下方展示
+ * - 开关关闭时：调用原有的 /api/chat/ask，行为与改造前完全一致
  */
 async function sendMessage() {
   if (text.value.trim().length <= 0) {
@@ -252,7 +321,13 @@ async function sendMessage() {
   // 1. 把用户消息加入对话列表
   const userContent = text.value.trim();
   messageData.value.push({ role: 'user', content: userContent });
-  messageData.value.push({ role: 'assistant', content: '', loadShow: true, copyIcon: false });
+  messageData.value.push({
+    role: 'assistant',
+    content: '',
+    loadShow: true,
+    copyIcon: false,
+    sources: [] // 【新增】该条回答引用的知识库来源
+  });
 
   // 2. 维护对话历史（用于上下文理解）
   historyTestList.value.push({ role: 'user', content: userContent });
@@ -260,14 +335,25 @@ async function sendMessage() {
   sendInState.value = true;
 
   try {
-    // 3. 调用 SpringBoot 后端（与表单模式统一）
-    const reply = await chatAsk(historyTestList.value);
+    let reply = '';
+    let sources = [];
+
+    if (useRag.value) {
+      // 3a. 开启知识库增强：走 RAG 接口
+      const ragResult = await chatAskRag(historyTestList.value, true);
+      reply = (ragResult && ragResult.answer) || '';
+      sources = (ragResult && ragResult.sources) || [];
+    } else {
+      // 3b. 关闭知识库增强：走原有接口，请求路径与响应格式都不变
+      reply = await chatAsk(historyTestList.value);
+    }
 
     // 4. 收到回复，更新 UI
     const lastIndex = messageData.value.length - 1;
     messageData.value[lastIndex].content = reply;
     messageData.value[lastIndex].loadShow = false;
     messageData.value[lastIndex].copyIcon = true;
+    messageData.value[lastIndex].sources = sources;
 
     // 5. 把 AI 回复也加入历史
     historyTestList.value.push({ role: 'assistant', content: reply });
@@ -872,5 +958,99 @@ const toHistoryPage = () => {
   border-radius: 10rpx;
   padding: 10rpx 0;
   font-size: 32rpx;
+}
+
+/* ==================== 【新增】知识库增强（RAG）相关样式 ==================== */
+/* 顶部固定的知识库增强开关栏：紧贴在模式切换标签栏下方 */
+.rag-switch-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 98;
+  height: 46px;
+  box-sizing: border-box;
+  padding: 0 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f5fbff;
+  border-bottom: 1rpx solid #e3f0fa;
+}
+.rag-switch-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.rag-switch-title {
+  font-size: 28rpx;
+  color: #2897ce;
+  font-weight: bold;
+}
+.rag-switch-tip {
+  font-size: 20rpx;
+  color: #8a9aa5;
+  margin-top: 2rpx;
+}
+
+/* 引用来源区域 */
+.rag-sources {
+  margin-top: 20rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx dashed #d8e6ef;
+}
+.rag-sources-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 26rpx;
+  color: #2897ce;
+  font-weight: bold;
+  margin-bottom: 12rpx;
+}
+.rag-sources-count {
+  font-size: 22rpx;
+  color: #8a9aa5;
+  font-weight: normal;
+}
+.rag-source-item {
+  background-color: #f5fbff;
+  border-radius: 10rpx;
+  padding: 14rpx 18rpx;
+  margin-bottom: 12rpx;
+}
+.rag-source-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.rag-source-name {
+  font-size: 26rpx;
+  color: #22343f;
+  font-weight: bold;
+  flex: 1;
+}
+.rag-source-score {
+  font-size: 20rpx;
+  color: #2897ce;
+  margin-left: 12rpx;
+}
+.rag-source-meta {
+  display: flex;
+  align-items: center;
+  font-size: 20rpx;
+  color: #8a9aa5;
+  margin-top: 6rpx;
+}
+.rag-source-toggle {
+  margin-left: auto;
+  color: #2897ce;
+}
+.rag-source-content {
+  margin-top: 10rpx;
+  padding-top: 10rpx;
+  border-top: 1rpx solid #e3f0fa;
+  font-size: 24rpx;
+  color: #4a5c66;
+  line-height: 1.6;
 }
 </style>

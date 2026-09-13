@@ -1,5 +1,5 @@
 // api/plan.js
-const BASE_URL = 'http://localhost:8080'; // 真机调试请改为局域网IP
+import { BASE_URL } from './config.js'; // 地址统一在 config.js 配置（真机调试改那一处即可）
 
 const request = (url, method, data) => {
   const token = uni.getStorageSync('token');
